@@ -1,70 +1,155 @@
-# Sprint 3 — Cybersecurity | AutoInsight
+# AutoInsight — Sprint 3 de Cybersecurity
+
+Documentação e evidências de Cybersecurity do Challenge Ford FIAP 2026.
+
+## Equipe
+
+| Nome | RM |
+|---|---|
+| Ali Andrea Mamani Molle | 558052 |
+| Guilherme Linard F. R. Gozzi | 555768 |
+| Lucas Vasquez Silva | 555159 |
+
+## Repositórios e aplicação
+
+| Recurso | Link |
+|---|---|
+| Código atualizado da API | [Sprint-Soa-Ford](https://github.com/AliAndrea1/Sprint-Soa-Ford) |
+| Aplicativo mobile | [fiap-mdi-sprint-autoinsight](https://github.com/AliAndrea1/fiap-mdi-sprint-autoinsight) |
+| Documentação interativa da API | [Swagger UI](https://sprint-soa-ford-production.up.railway.app/swagger-ui.html) |
+| Pipeline de segurança | [Execução aprovada no GitHub Actions](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088) |
+
+Este repositório reúne a análise e as evidências de Cybersecurity. A implementação atual da API é mantida no repositório **Sprint-Soa-Ford**.
 
 ## Escopo e estado da entrega
 
-A API Spring Boot roda no Railway com MySQL; o aplicativo Android consome a API por HTTPS. O workflow de segurança está preparado em `Sprint-Soa-Ford/.github/workflows/security.yml`. A primeira execução no GitHub, seus resultados e capturas de tela ainda precisam ser registrados antes de afirmar que o pipeline passou.
+A API AutoInsight foi desenvolvida em Spring Boot, utiliza MySQL no Railway e é consumida pelo aplicativo Android por HTTPS.
+
+Na [execução do pipeline de 27/09/2026](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088), passaram os testes Java, a análise estática com Semgrep e a verificação de segredos com Gitleaks. O deploy do Railway também apresentou sucesso nessa execução. As pendências de segurança indicadas neste documento ainda precisam ser tratadas e comprovadas separadamente.
 
 ## 1. Pipeline DevSecOps
 
+O [workflow de segurança](https://github.com/AliAndrea1/Sprint-Soa-Ford/blob/master/.github/workflows/security.yml) está no repositório da API e executa em `push`, `pull_request` e por acionamento manual. A [configuração do Dependabot](https://github.com/AliAndrea1/Sprint-Soa-Ford/blob/master/.github/dependabot.yml) verifica atualizações de dependências Maven e GitHub Actions.
+
 ```mermaid
 flowchart TD
-    A["Push ou pull request"] --> B["GitHub Actions"]
-    B --> C["Testes Java: autenticação e permissões"]
-    B --> D["Semgrep: análise estática"]
-    B --> E["Gitleaks: histórico Git"]
-    C --> F["Revisão e correção de falhas"]
+    A["Push ou pull request na API"] --> B["GitHub Actions"]
+    B --> C["Testes Java"]
+    B --> D["Semgrep"]
+    B --> E["Gitleaks"]
+    C --> F["Resultado e revisão"]
     D --> F
     E --> F
-    F --> G["Merge e deploy Railway"]
+    F --> G["Correções e nova execução"]
 ```
 
-| Etapa | Implementação | Risco tratado | Evidência a guardar |
+| Verificação | O que faz | Risco abordado | Evidência |
 |---|---|---|---|
-| Testes de API | Maven, testes de login, JWT, leitura, 401, 403, 404 e 409 | Regressões de autenticação e regras de negócio | Aba Actions, testes e resultado |
-| SAST | Semgrep com regras Java e falha em achados | Padrões inseguros no código | Aba Actions, achados e correção |
-| Segredos | Gitleaks no histórico completo com saída censurada | Exposição de chaves e senhas no Git | Aba Actions, resultado e revisão do histórico |
-| SCA | Dependabot semanal para Maven e GitHub Actions | Dependências desatualizadas | Aba Security/Dependabot e PRs |
+| Testes Java | Executa testes de autenticação, JWT, serviço de veículos, erros e permissões | Regressões nas regras de negócio e no controle de acesso | [Execução aprovada](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088) |
+| Semgrep | Analisa estaticamente o código Java | Padrões de implementação inseguros cobertos pelas regras utilizadas | [Job do Semgrep](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088/job/108555535038) |
+| Gitleaks | Examina o histórico Git em busca de segredos identificáveis | Exposição de credenciais detectáveis pelas regras da ferramenta | [Job do Gitleaks](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088/job/108555535181) |
+| Dependabot | Propõe atualizações de dependências | Uso de componentes desatualizados | [Configuração do Dependabot](https://github.com/AliAndrea1/Sprint-Soa-Ford/blob/master/.github/dependabot.yml) |
 
-O workflow executa em `push` e `pull_request` das branches `master` e `main`, além de execução manual em Actions. Dependabot propõe atualizações; verificar se Dependabot alerts está habilitado no repositório. Configurar proteção da branch para exigir os três jobs antes do merge. O deploy Railway só deve ocorrer depois do merge validado; o workflow **não** configura a proteção de branch nem altera sozinho o gatilho de deploy Railway. Não há Dockerfile verificado nesta API, portanto a análise de imagem de contêiner fica condicionada à adoção de uma imagem própria.
+O Dependabot abre propostas de atualização, mas elas devem ser avaliadas antes do merge. Uma atualização de versão principal, como Spring Boot 3 para 4, pode exigir alterações no projeto e novos testes.
 
-## 2. Código e infraestrutura
+**Limite atual:** o sucesso dos jobs não garante, sozinho, que todo o código é seguro. Ainda é necessário revisar achados não detectados pelas ferramentas, proteger a branch e confirmar como o deploy do Railway é liberado. O workflow não impede automaticamente um deploy feito diretamente após um `push`.
 
-| Controle observado | Código da API | Teste ou conferência |
+### Evidência visual do pipeline
+
+Adicione aqui o print dos checks aprovados após enviar a imagem ao repositório:
+
+```markdown
+![Testes Java, Semgrep e Gitleaks aprovados](pipeline-sucesso.JPG)
+```
+
+## 2. Segurança do código e da infraestrutura
+
+| Controle | Onde está implementado | Como verificar |
 |---|---|---|
-| JWT assinado e com expiração | `security/JwtUtil.java`, `JwtFilter.java` | `JwtUtilTest`, `JwtFilterTest` |
-| Permissões ADMIN e ANALYST | `config/SecurityConfig.java` | `VehicleSecurityTest` cobre 401, leitura 200 e escrita 403 |
-| Limite de 30 requisições por minuto e IP | `security/RateLimitFilter.java` | Testar 429 com carga controlada; considerar proxies Railway |
-| Histórico criptografado AES/GCM | `security/CryptoUtils.java`, `service/SearchHistoryService.java` | Conferir registros do histórico sem expor chave |
-| Validação de entrada | DTOs com Jakarta Validation, `VehicleController.java` | Testar entrada inválida e resposta 400 |
-| HTTPS externo | Domínio público Railway | Abrir Swagger e API por `https://` |
+| JWT assinado e com expiração | `JwtUtil.java` e `JwtFilter.java` | `JwtUtilTest` e `JwtFilterTest` |
+| Perfis `ADMIN` e `ANALYST` | `SecurityConfig.java` | `VehicleSecurityTest`: acesso sem token, leitura permitida e escrita negada |
+| Limite de requisições por IP | `RateLimitFilter.java` | Resposta HTTP 429 ao atingir o limite |
+| Histórico criptografado com AES/GCM | `CryptoUtils.java` e `SearchHistoryService.java` | Conferir os dados persistidos sem expor a chave |
+| Validação de entrada | DTOs e `VehicleController.java` | Enviar entradas inválidas e verificar HTTP 400 |
+| HTTPS externo | Domínio público da API no Railway | Acessar a API por `https://` |
 
-**Pendência prioritária:** a versão consultada da API mantém `admin123` e `analyst123` no `AuthController` e valores padrão em `application.properties` para `DB_PASSWORD`, `JWT_SECRET` e `CRYPTO_KEY`. Isso impede afirmar que não há segredos no código. Trocar senhas de demonstração por credenciais configuradas com segurança, retirar os valores padrão dos segredos em produção, configurar novas variáveis no Railway e girar todas as chaves que tenham sido expostas. Chave AES alterada exige estratégia de migração dos históricos já criptografados. Evitar publicar tokens, senhas e segredos nas evidências.
+Os arquivos citados estão em [`src/main/java/com/autoinsight/autoinsight_api`](https://github.com/AliAndrea1/Sprint-Soa-Ford/tree/master/src/main/java/com/autoinsight/autoinsight_api). Os testes estão em [`src/test/java`](https://github.com/AliAndrea1/Sprint-Soa-Ford/tree/master/src/test/java).
 
-## 3. Observabilidade e resposta a incidente
+### Pendências prioritárias
 
-O `AuthController` registra login com sucesso e falha; `AuditLogFilter` registra usuário, método, rota, IP e status no banco e nos logs, com destaque para 401/403. Logs atuais não constituem, por si, dashboard ou alertas. Proposta: painel Railway com taxa de 5xx, 401/403 e 429 por janela de cinco minutos, latência da API e disponibilidade do MySQL; confirmar recursos efetivamente disponíveis no plano antes de documentar capturas. Alertas devem distinguir falhas repetidas de login, aumento de 5xx, API indisponível e falhas de conexão ao banco.
+Na versão analisada, o `AuthController` ainda contém as senhas de demonstração `admin123` e `analyst123`. O `application.properties` também contém valores padrão para `DB_PASSWORD`, `JWT_SECRET` e `CRYPTO_KEY`.
 
-Fluxo de incidente: **detectar** alerta/log → **analisar** horário, rota, impacto e evidências sem copiar tokens → **conter** credenciais, acesso ou versão afetados → **erradicar** causa e corrigir código/configuração → **recuperar** serviço e validar testes/fluxos mobile → registrar retrospectiva e ações preventivas. Backup MySQL e teste de restauração ainda exigem comprovação específica.
+Por isso, **não afirmamos que todas as credenciais estão fora do código**. As próximas correções são:
 
-## 4. Riscos, conformidade e privacidade
+1. Substituir as senhas fixas de demonstração por credenciais configuradas de forma segura.
+2. Remover os valores padrão dos segredos usados em produção.
+3. Configurar as variáveis necessárias no Railway.
+4. Trocar chaves e credenciais que tenham sido expostas.
+5. Planejar a migração dos históricos criptografados antes de alterar a chave AES utilizada neles.
 
-| Ameaça STRIDE | Cenário | Controle existente ou ação |
+Tokens, senhas e chaves não devem aparecer nos prints de evidência.
+
+## 3. Observabilidade e resposta a incidentes
+
+O `AuthController` registra tentativas de login bem-sucedidas e malsucedidas. O `AuditLogFilter` registra usuário, método HTTP, endpoint, IP, status da resposta e horário. Respostas 401 e 403 também recebem destaque nos logs.
+
+Esses registros ajudam na investigação, mas **logs não equivalem a um painel com alertas configurados**. Ainda é necessário comprovar quais métricas e alertas estão disponíveis e ativos na infraestrutura utilizada.
+
+| Sinal a acompanhar | Possível significado | Ação inicial |
 |---|---|---|
-| Spoofing | Uso indevido de conta demo ou token | JWT e autenticação; substituir contas com senha fixa |
-| Tampering | Mudança indevida em veículos | Escrita restrita a ADMIN; testar e auditar alterações |
-| Repudiation | Negação de alteração feita | AuditLogFilter; proteger retenção e acesso ao log |
-| Information disclosure | Chaves no repositório, JWT no AsyncStorage e histórico | Gitleaks, rotação; rever armazenamento de token no mobile |
-| Denial of service | Alto volume de chamadas | Bucket4j; verificar IP de origem atrás do proxy e alertas 429 |
-| Elevation of privilege | Analyst tenta escrever ou ver auditoria | RBAC e testes 403; testar endpoints restantes |
+| Muitas respostas 401 | Tentativas de autenticação inválidas | Verificar origem, volume e horário |
+| Muitas respostas 403 | Tentativas de acessar funções sem permissão | Conferir conta e endpoint envolvidos |
+| Aumento de respostas 429 | Volume de requisições acima do limite | Investigar origem e impacto |
+| Aumento de respostas 5xx | Falha da API ou de uma dependência | Consultar logs da aplicação e do banco |
+| API indisponível | Interrupção do serviço | Verificar o deploy e a infraestrutura |
 
-Aplicar revisão de requisitos OWASP ASVS para autenticação, sessão, autorização, validação e logs; OWASP API Security Top 10 para autorização em objetos e funções, consumo de recursos e configuração; OWASP Mobile Top 10 para armazenamento de token, transporte e build Android. Essa tabela é mapeamento inicial, **não** certificação ASVS.
+### Fluxo de resposta a incidentes
 
-LGPD: identificar dados pessoais nos campos de conta, endereço IP e logs; definir finalidade, base legal, acesso mínimo, prazo de retenção e exclusão quando aplicável. Histórico de pesquisa pode revelar atividade profissional. Documentar quem acessa o banco, política de backup, teste de restauração e procedimento de atendimento a incidente. Telemetria e localização não foram confirmadas como coletadas pelo app; avaliar apenas se forem adicionadas.
+1. **Detecção:** identificar alerta, erro ou comportamento anormal.
+2. **Análise:** reunir horário, endpoints afetados, logs e impacto, sem copiar tokens ou senhas para a documentação.
+3. **Contenção:** restringir o acesso afetado ou revogar credenciais comprometidas.
+4. **Erradicação:** corrigir a causa no código ou na configuração.
+5. **Recuperação:** restaurar o serviço e testar novamente a API e os fluxos do aplicativo.
+6. **Registro:** documentar a causa, a solução e as ações para evitar recorrência.
 
-## Evidências para concluir
+Backup do MySQL e teste de restauração precisam de evidência própria antes de serem apresentados como controles concluídos.
 
-1. Captura dos jobs em GitHub Actions e detalhes das falhas corrigidas; guardar em `docs/evidencias/sprint3/`.
-2. Captura do Dependabot habilitado e das atualizações avaliadas.
-3. Commits dos controles implementados e resultado de teste dos papéis ADMIN/ANALYST.
-4. Capturas dos logs/painel e demonstração de alerta, se configurado.
-5. Registro de backup e restauração testada, se realizados.
+## 4. Análise de riscos e conformidade
+
+### Modelo STRIDE
+
+| Categoria | Cenário no AutoInsight | Controle existente ou ação necessária |
+|---|---|---|
+| Spoofing | Uso indevido de conta ou token | JWT; substituir senhas fixas de demonstração |
+| Tampering | Alteração indevida de veículo | Escrita restrita a `ADMIN`; testar e auditar operações |
+| Repudiation | Usuário negar uma operação realizada | Trilha de auditoria; proteger acesso e retenção dos logs |
+| Information disclosure | Exposição de segredos, token ou histórico | Gitleaks, revisão de segredos e armazenamento do token |
+| Denial of service | Excesso de requisições | Rate limiting; verificar comportamento atrás do proxy |
+| Elevation of privilege | `ANALYST` tentar executar ações de `ADMIN` | RBAC e testes de resposta 403 |
+
+### Referências para revisão
+
+A revisão de segurança considera os seguintes grupos de requisitos:
+
+- **OWASP ASVS:** autenticação, gerenciamento de sessão, autorização, validação e registros de segurança.
+- **OWASP API Security Top 10:** autorização por objeto e por função, consumo de recursos e configuração da API.
+- **OWASP Mobile Top 10:** armazenamento local do token, comunicação com a API e segurança do aplicativo Android.
+
+Essa relação orienta a revisão. **Ela não representa uma certificação ou conformidade integral com o ASVS.**
+
+### Privacidade e LGPD
+
+O projeto deve identificar quais dados pessoais aparecem nas contas, nos endereços IP e nos logs. Também precisa definir finalidade do tratamento, acesso mínimo, retenção e procedimento de exclusão quando aplicável.
+
+O histórico de buscas pode revelar atividades profissionais dos usuários. O acesso ao banco e às evidências deve ser limitado. Telemetria e localização não foram confirmadas como dados coletados pelo aplicativo; devem ser analisadas caso sejam adicionadas no futuro.
+
+## Evidências e próximos passos
+
+| Evidência ou ação | Situação |
+|---|---|
+| Execução de testes Java, Semgrep e Gitleaks | [Aprovada no GitHub Actions](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088) |
+| Print dos checks aprovados | Adicionar ao repositório de Cybersecurity |
+| Avaliação dos PRs do Dependabot | Pendente; não aceitar atualizações automaticamente |
+| Correção das credenciais e chaves padrão | Pendente |
+| Painel e alertas de observabilidade | Pendente de configuração e evidência |
+| Backup e restauração testada | Pendente de comprovação |
