@@ -99,6 +99,9 @@ Esses registros ajudam na investigação, mas **logs não equivalem a um painel 
 | Aumento de respostas 5xx | Falha da API ou de uma dependência | Consultar logs da aplicação e do banco |
 | API indisponível | Interrupção do serviço | Verificar o deploy e a infraestrutura |
 
+### Evidência dos logs
+
+![Registros de autenticação e auditoria da API no Railway](logs-autenticacao.JPG)
 ### Fluxo de resposta a incidentes
 
 1. **Detecção:** identificar alerta, erro ou comportamento anormal.
