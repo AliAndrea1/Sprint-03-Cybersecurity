@@ -131,6 +131,22 @@ O painel acima apresenta métricas de infraestrutura; taxas de erro e latência 
 
 Backup do MySQL e teste de restauração precisam de evidência própria antes de serem apresentados como controles concluídos.
 
+### Procedimento de resposta para a API AutoInsight
+
+| Situação detectada | Verificação inicial | Contenção e recuperação | Registro esperado |
+|---|---|---|---|
+| Sequência incomum de logins inválidos ou respostas 401/403 | Conferir horário, rota, usuário e IP nos registros de auditoria; comparar com acessos esperados | Restringir credenciais afetadas; trocar a senha configurada no Railway quando necessário; confirmar login dos perfis após a alteração | Horário, evidências sem senhas ou tokens, decisão e resultado do novo teste |
+| Aumento de erros 5xx ou API indisponível | Conferir logs do deploy, estado do serviço MySQL e métricas do Railway | Corrigir configuração ou versão afetada; confirmar Swagger, login e consulta de veículos no aplicativo | Causa identificada, intervalo da indisponibilidade e testes após recuperação |
+| Suspeita de exposição de chave ou token | Identificar o material exposto e onde foi publicado, sem reproduzir seu valor no relatório | Revogar ou substituir a credencial; gerar nova chave JWT quando necessário. A troca da chave AES requer migração dos históricos criptografados antes da substituição | Local da exposição, credenciais rotacionadas e validação do histórico |
+
+O painel do Railway apresenta métricas e os logs permitem investigação manual; **não há evidência de alertas automáticos configurados**. A equipe deve acompanhar os registros e testar o fluxo de resposta periodicamente.
+
+### Situação do backup e recuperação
+
+Em 27/09/2026, a interface do serviço MySQL no Railway mostrou `No Backups` e informou que a criação de backups e a recuperação em um momento específico (PITR) dependem do plano Pro. O arquivo `backup.zip` gerado pela opção **Backup Connections** do MySQL Workbench contém configurações de conexão, não os dados do banco. A tentativa de exportação pelo Workbench encontrou incompatibilidade entre o `mysqldump` local 8.0.46 e o MySQL 9.4.0 do Railway, portanto não foi usada como prova de backup.
+
+**Rotina proposta:** usar uma ferramenta de exportação compatível com a versão do servidor para gerar uma cópia lógica, guardar o arquivo com acesso restrito fora do repositório, restaurá-lo em um banco separado e verificar as tabelas e uma amostra de registros sem divulgar dados pessoais. Essa rotina e o teste de restauração **ainda não foram executados**; não restaurar diretamente no banco de produção para produzir evidência.
+
 ## 4. Análise de riscos e conformidade
 
 ### Modelo STRIDE
@@ -168,7 +184,7 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 | Testes de segurança | A cada push e pull request da API | Executar testes de autenticação, JWT, autorização e criptografia; acompanhar Semgrep e Gitleaks no Actions | Implementado no pipeline; conferir a execução do commit entregue |
 | Auditoria de permissões | Mensal e após alteração nos endpoints | Revisar a matriz `ADMIN`/`ANALYST`; testar 401 sem token, 403 sem permissão e 200 com acesso autorizado | Testes de veículos realizados; demais rotas exigem revisão |
 | Análise de logs e incidentes | Semanal e após comportamento suspeito | Examinar tentativas de login, 401, 403, 429 e 5xx; registrar causa e ação tomada sem copiar dados sensíveis | Logs e métricas capturados; alertas ainda pendentes |
-| Backup e recuperação do MySQL | Frequência a definir conforme recursos do banco e necessidade de retenção | Fazer backup, guardar com acesso restrito, restaurar em ambiente separado e comprovar a integridade dos registros | Pendente de implementação e teste de restauração |
+| Backup e recuperação do MySQL | Frequência a definir conforme recursos do banco e necessidade de retenção | Fazer exportação compatível com MySQL 9.4, guardar com acesso restrito e restaurar em ambiente separado | Pendente: backups nativos do Railway exigem plano Pro; exportação e restauração ainda não comprovadas |
 
 ### Checklist de conformidade da entrega
 
@@ -182,7 +198,7 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 | Revisão OWASP ASVS/API/Mobile | Mapeamento inicial | Revisão detalhada por requisito ainda pendente; não declarar certificação |
 | Dados pessoais e LGPD | Identificação inicial | Definir finalidade, retenção, acesso e exclusão para contas, IPs, logs e histórico |
 | Alertas de aplicação | Pendente | Métricas de infraestrutura e logs não comprovam alertas ativos |
-| Backup e restauração | Pendente | Registrar backup e teste de restauração sem expor dados pessoais |
+| Backup e restauração | Pendente | Railway sem backups no plano atual; executar exportação compatível e testar restauração em banco separado |
 
 ## Evidências e próximos passos
 
@@ -193,5 +209,5 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 | Avaliação dos PRs do Dependabot | PRs #2, #4, #6 e #8 analisados acima; demais PRs ainda requerem revisão antes de qualquer merge |
 | Correção das credenciais e valores padrão | Implementada na API; validar pelo commit e nova execução do pipeline |
 | Métricas de infraestrutura e logs | Prints incluídos nas seções de observabilidade; alertas ainda pendentes |
-| Backup e restauração testada | Pendente de comprovação |
+| Backup e restauração testada | Pendente: serviço Railway mostra `No Backups`; rotina alternativa está descrita na seção 3 |
 | Plano de segurança contínua e checklist | Incluídos na seção 4; itens parciais e pendentes identificados |
