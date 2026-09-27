@@ -160,6 +160,30 @@ O projeto deve identificar quais dados pessoais aparecem nas contas, nos endere�
 
 O histórico de buscas pode revelar atividades profissionais dos usuários. O acesso ao banco e às evidências deve ser limitado. Telemetria e localização não foram confirmadas como dados coletados pelo aplicativo; devem ser analisadas caso sejam adicionadas no futuro.
 
+### Plano de segurança contínua
+
+| Rotina | Frequência proposta | Procedimento e evidência | Estado |
+|---|---|---|---|
+| Revisão de dependências | Semanal e antes de cada entrega | Revisar PRs do Dependabot, checar compatibilidade e executar testes antes do merge; registrar a decisão em cada PR | Em execução: PRs #2, #4, #6 e #8 analisados |
+| Testes de segurança | A cada push e pull request da API | Executar testes de autenticação, JWT, autorização e criptografia; acompanhar Semgrep e Gitleaks no Actions | Implementado no pipeline; conferir a execução do commit entregue |
+| Auditoria de permissões | Mensal e após alteração nos endpoints | Revisar a matriz `ADMIN`/`ANALYST`; testar 401 sem token, 403 sem permissão e 200 com acesso autorizado | Testes de veículos realizados; demais rotas exigem revisão |
+| Análise de logs e incidentes | Semanal e após comportamento suspeito | Examinar tentativas de login, 401, 403, 429 e 5xx; registrar causa e ação tomada sem copiar dados sensíveis | Logs e métricas capturados; alertas ainda pendentes |
+| Backup e recuperação do MySQL | Frequência a definir conforme recursos do banco e necessidade de retenção | Fazer backup, guardar com acesso restrito, restaurar em ambiente separado e comprovar a integridade dos registros | Pendente de implementação e teste de restauração |
+
+### Checklist de conformidade da entrega
+
+| Verificação | Situação | Evidência ou pendência |
+|---|---|---|
+| Autenticação, JWT e expiração | Implementado | `JwtUtilTest`, `JwtFilterTest` e testes de login |
+| Autorização por perfil | Parcialmente verificado | `VehicleSecurityTest`; ampliar os testes para histórico e auditoria |
+| Proteção contra excesso de requisições | Implementado, validação pendente | `RateLimitFilter`; testar HTTP 429 e conferir IP real atrás do proxy Railway |
+| Criptografia do histórico | Implementado | `CryptoUtilsTest` e código da API; rotação da chave AES ainda exige migração dos dados |
+| Análise de código e segredos no CI | Implementado | Jobs Semgrep e Gitleaks; revisar resultados em cada execução |
+| Revisão OWASP ASVS/API/Mobile | Mapeamento inicial | Revisão detalhada por requisito ainda pendente; não declarar certificação |
+| Dados pessoais e LGPD | Identificação inicial | Definir finalidade, retenção, acesso e exclusão para contas, IPs, logs e histórico |
+| Alertas de aplicação | Pendente | Métricas de infraestrutura e logs não comprovam alertas ativos |
+| Backup e restauração | Pendente | Registrar backup e teste de restauração sem expor dados pessoais |
+
 ## Evidências e próximos passos
 
 | Evidência ou ação | Situação |
@@ -170,3 +194,4 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 | Correção das credenciais e valores padrão | Implementada na API; validar pelo commit e nova execução do pipeline |
 | Métricas de infraestrutura e logs | Prints incluídos nas seções de observabilidade; alertas ainda pendentes |
 | Backup e restauração testada | Pendente de comprovação |
+| Plano de segurança contínua e checklist | Incluídos na seção 4; itens parciais e pendentes identificados |
