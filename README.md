@@ -52,6 +52,19 @@ flowchart TD
 
 O Dependabot abre propostas de atualização, mas elas devem ser avaliadas antes do merge. Uma atualização de versão principal, como Spring Boot 3 para 4, pode exigir alterações no projeto e novos testes.
 
+### Avaliação dos pull requests do Dependabot
+
+Os PRs criados antes da correção do workflow falhavam com `./mvnw: Permission denied`. Após alterar a execução para `bash ./mvnw`, os PRs foram atualizados com `@dependabot rebase` para usar o pipeline corrigido. Os resultados observados foram:
+
+| PR | Atualização proposta | Resultado observado | Decisão |
+|---|---|---|---|
+| [#2](https://github.com/AliAndrea1/Sprint-Soa-Ford/pull/2) | Spring Boot 3.5.14 → 4.1.1 | Falha de compilação em `VehicleSecurityTest`: o pacote de `@WebMvcTest` mudou no Spring Boot 4 | Manter 3.5.14; planejar a migração e testar a API e o Swagger |
+| [#4](https://github.com/AliAndrea1/Sprint-Soa-Ford/pull/4) | `jjwt-api` 0.12.6 → 0.13.0 | A atualização isolada apresentou seis erros nos testes por incompatibilidade com a implementação antiga | Avaliar `jjwt-api`, `jjwt-impl` e `jjwt-jackson` juntos antes do merge |
+| [#6](https://github.com/AliAndrea1/Sprint-Soa-Ford/pull/6) | Springdoc 2.8.8 → 3.1.1 | `VehicleSecurityTest` falhou durante a inicialização do Spring | Manter Springdoc 2.x enquanto a API usar Spring Boot 3 |
+| [#8](https://github.com/AliAndrea1/Sprint-Soa-Ford/pull/8) | `jjwt-impl` 0.12.6 → 0.13.0 | Os checks passaram após a atualização do PR | Aguardar avaliação conjunta dos três módulos JJWT antes do merge |
+
+Os demais PRs seguem em análise individual. Um check aprovado confirma apenas as verificações configuradas para aquele PR; não autoriza automaticamente o merge ou o deploy.
+
 **Limite atual:** o sucesso dos jobs não garante, sozinho, que todo o código é seguro. Ainda é necessário revisar achados não detectados pelas ferramentas, proteger a branch e confirmar como o deploy do Railway é liberado. O workflow não impede automaticamente um deploy feito diretamente após um `push`.
 
 ### Evidência visual do pipeline
@@ -153,7 +166,7 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 |---|---|
 | Execução de testes Java, Semgrep e Gitleaks | [Aprovada no GitHub Actions](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088) |
 | Print dos checks aprovados | Incluído na seção Pipeline DevSecOps |
-| Avaliação dos PRs do Dependabot | Pendente; não aceitar atualizações automaticamente |
+| Avaliação dos PRs do Dependabot | PRs #2, #4, #6 e #8 analisados acima; demais PRs ainda requerem revisão antes de qualquer merge |
 | Correção das credenciais e valores padrão | Implementada na API; validar pelo commit e nova execução do pipeline |
 | Métricas de infraestrutura e logs | Prints incluídos nas seções de observabilidade; alertas ainda pendentes |
 | Backup e restauração testada | Pendente de comprovação |
