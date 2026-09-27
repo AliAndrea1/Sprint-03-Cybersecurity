@@ -58,10 +58,6 @@ O Dependabot abre propostas de atualização, mas elas devem ser avaliadas antes
 
 <img width="1843" height="953" alt="pipeline-sucesso" src="https://github.com/user-attachments/assets/7e6ad221-7a1c-4b8e-bb55-47627a409423" />
 
-```markdown
-![Testes Java, Semgrep e Gitleaks aprovados](pipeline-sucesso.JPG)
-```
-
 ## 2. Segurança do código e da infraestrutura
 
 | Controle | Onde está implementado | Como verificar |
