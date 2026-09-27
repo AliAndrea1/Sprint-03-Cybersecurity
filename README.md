@@ -56,7 +56,7 @@ O Dependabot abre propostas de atualização, mas elas devem ser avaliadas antes
 
 ### Evidência visual do pipeline
 
-Adicione aqui o print dos checks aprovados após enviar a imagem ao repositório:
+<img width="1843" height="953" alt="pipeline-sucesso" src="https://github.com/user-attachments/assets/7e6ad221-7a1c-4b8e-bb55-47627a409423" />
 
 ```markdown
 ![Testes Java, Semgrep e Gitleaks aprovados](pipeline-sucesso.JPG)
