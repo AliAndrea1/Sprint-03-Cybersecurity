@@ -104,6 +104,13 @@ Esses registros ajudam na investigação, mas **logs não equivalem a um painel 
 ![Registros de autenticação e auditoria da API no Railway](logs-autenticacao.JPG)
 ### Fluxo de resposta a incidentes
 
+### Dashboard de infraestrutura
+
+O painel Metrics do Railway acompanha o consumo de CPU, memória e rede
+do serviço da API. Os logs de autenticação e auditoria complementam esses
+gráficos na investigação de incidentes.
+
+![Métricas da API no Railway](dashboard-railway.JPG)
 1. **Detecção:** identificar alerta, erro ou comportamento anormal.
 2. **Análise:** reunir horário, endpoints afetados, logs e impacto, sem copiar tokens ou senhas para a documentação.
 3. **Contenção:** restringir o acesso afetado ou revogar credenciais comprometidas.
