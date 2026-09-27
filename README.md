@@ -73,15 +73,9 @@ Os arquivos citados estão em [`src/main/java/com/autoinsight/autoinsight_api`](
 
 ### Pendências prioritárias
 
-Na versão analisada, o `AuthController` ainda contém as senhas de demonstração `admin123` e `analyst123`. O `application.properties` também contém valores padrão para `DB_PASSWORD`, `JWT_SECRET` e `CRYPTO_KEY`.
+O `AuthController` passou a ler as senhas das variáveis `ADMIN_PASSWORD` e `ANALYST_PASSWORD`. Os valores padrão de `DB_PASSWORD`, `JWT_SECRET` e `CRYPTO_KEY` foram retirados do `application.properties`. As variáveis necessárias foram configuradas no Railway, e os dois perfis tiveram o login testado no aplicativo após o deploy. O `CryptoUtils` passou a interromper a operação quando a criptografia falha; o `CryptoUtilsTest` verifica que não há retorno em texto aberto. A execução local reportou 19 testes aprovados. Consulte [código e testes da API](https://github.com/AliAndrea1/Sprint-Soa-Ford).
 
-Por isso, **não afirmamos que todas as credenciais estão fora do código**. As próximas correções são:
-
-1. Substituir as senhas fixas de demonstração por credenciais configuradas de forma segura.
-2. Remover os valores padrão dos segredos usados em produção.
-3. Configurar as variáveis necessárias no Railway.
-4. Trocar chaves e credenciais que tenham sido expostas.
-5. Planejar a migração dos históricos criptografados antes de alterar a chave AES utilizada neles.
+A chave JWT foi renovada. A chave AES do histórico permanece compatível com os registros existentes; sua troca exige migração planejada dos dados. Ainda falta verificar backup e restauração e reavaliar a proteção da branch e o armazenamento do token no aplicativo.
 
 Tokens, senhas e chaves não devem aparecer nos prints de evidência.
 
@@ -102,7 +96,6 @@ Esses registros ajudam na investigação, mas **logs não equivalem a um painel 
 ### Evidência dos logs
 
 ![Registros de autenticação e auditoria da API no Railway](logs-autenticacao.JPG)
-### Fluxo de resposta a incidentes
 
 ### Dashboard de infraestrutura
 
@@ -111,6 +104,11 @@ do serviço da API. Os logs de autenticação e auditoria complementam esses
 gráficos na investigação de incidentes.
 
 ![Métricas da API no Railway](dashboard-railway.JPG)
+
+O painel acima apresenta métricas de infraestrutura; taxas de erro e latência da aplicação exigem instrumentação ou análise específica dos logs. A configuração de alertas ainda precisa ser comprovada.
+
+### Fluxo de resposta a incidentes
+
 1. **Detecção:** identificar alerta, erro ou comportamento anormal.
 2. **Análise:** reunir horário, endpoints afetados, logs e impacto, sem copiar tokens ou senhas para a documentação.
 3. **Contenção:** restringir o acesso afetado ou revogar credenciais comprometidas.
@@ -126,7 +124,7 @@ Backup do MySQL e teste de restauração precisam de evidência própria antes d
 
 | Categoria | Cenário no AutoInsight | Controle existente ou ação necessária |
 |---|---|---|
-| Spoofing | Uso indevido de conta ou token | JWT; substituir senhas fixas de demonstração |
+| Spoofing | Uso indevido de conta ou token | JWT; senhas por variáveis de ambiente e revisão periódica de acessos |
 | Tampering | Alteração indevida de veículo | Escrita restrita a `ADMIN`; testar e auditar operações |
 | Repudiation | Usuário negar uma operação realizada | Trilha de auditoria; proteger acesso e retenção dos logs |
 | Information disclosure | Exposição de segredos, token ou histórico | Gitleaks, revisão de segredos e armazenamento do token |
@@ -154,8 +152,8 @@ O histórico de buscas pode revelar atividades profissionais dos usuários. O ac
 | Evidência ou ação | Situação |
 |---|---|
 | Execução de testes Java, Semgrep e Gitleaks | [Aprovada no GitHub Actions](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088) |
-| Print dos checks aprovados | Adicionar ao repositório de Cybersecurity |
+| Print dos checks aprovados | Incluído na seção Pipeline DevSecOps |
 | Avaliação dos PRs do Dependabot | Pendente; não aceitar atualizações automaticamente |
-| Correção das credenciais e chaves padrão | Pendente |
-| Painel e alertas de observabilidade | Pendente de configuração e evidência |
+| Correção das credenciais e valores padrão | Implementada na API; validar pelo commit e nova execução do pipeline |
+| Métricas de infraestrutura e logs | Prints incluídos nas seções de observabilidade; alertas ainda pendentes |
 | Backup e restauração testada | Pendente de comprovação |
